@@ -1,101 +1,145 @@
-import Image from "next/image";
+"use client";
+
+import OpenAI from "openai";
+import { useState } from "react";
+
+const openai = new OpenAI({
+  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
+});
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [userInput, setUserInput] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleUserInput = async () => {
+    if (!userInput.trim()) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        { role: "user", content: userInput },
+      ]);
+
+      let retryCount = 0;
+      let success = false;
+      let chatCompletion;
+
+      while (!success && retryCount < 3) {
+        try {
+          chatCompletion = await openai.chat.completions.create({
+            messages: [...chatHistory, { role: "user", content: userInput }],
+            model: "gpt-4o",
+          });
+          success = true;
+        } catch (error) {
+          if (error.response && error.response.status === 429) {
+            retryCount++;
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      if (!success) {
+        throw new Error("Request exceeded the quota. Please try again later.");
+      }
+
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        {
+          role: "assistant",
+          content: chatCompletion.choices[0].message.content,
+        },
+      ]);
+
+      setUserInput("");
+    } catch (error) {
+      setError(
+        error.message || "Error connecting to the server. Please try again."
+      );
+      console.error("Error: ", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleUserInput();
+    }
+  };
+
+  return (
+    <>
+      <div className="bg-green-100 min-h-screen flex flex-col justify-center items-center">
+        <div className="w-full max-w-screen-md bg-white p-4 rounded-lg shadow-md">
+          <div className="mb-4">
+            <div className="text-4xl font-bold text-green-500 mb-2">ChatBot</div>
+            <p className="text-gray-600 text-lg">
+              Welcome to the Future of AI-powered assistant.
+            </p>
+          </div>
+          {error && <div className="mb-4 text-red-500">{error}</div>}
+          <div className="mb-4" style={{ height: "400px", overflow: "auto" }}>
+            {chatHistory.map((message, index) => (
+              <div
+                key={index}
+                className={`${
+                  message.role === "user" ? "text-right" : "text-left"
+                } mb-2`}
+              >
+                <div
+                  className={`rounded-full p-2 max-w-md mx-4 inline-block ${
+                    message.role === "user"
+                      ? "bg-green-300 text-green-800"
+                      : "bg-blue-300 text-blue-800"
+                  }`}
+                >
+                  {message.role === "user" ? "You" : "ChatBot"}
+                </div>
+                <div
+                  className={`max-w-md mx-4 my-2 inline-block ${
+                    message.role === "user"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-blue-100 text-blue-800"
+                  } p-2 rounded-md`}
+                >
+                  {message.content}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex">
+            <input
+              type="text"
+              placeholder="Ask me something..."
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1 p-2 rounded-l-lg border"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {isLoading ? (
+              <div className="bg-blue-500 text-white p-2 rounded-r-lg animate-pulse">
+                Loading...
+              </div>
+            ) : (
+              <button
+                onClick={handleUserInput}
+                className="bg-green-500 text-white p-2 rounded-r-lg hover:bg-green-600"
+              >
+                Ask
+              </button>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </>
   );
 }
