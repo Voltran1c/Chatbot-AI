@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { useState } from "react";
+import ChatHistorySidebar from "./components/ChatHistorySidebar.jsx";
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
@@ -33,7 +34,7 @@ export default function Home() {
         try {
           chatCompletion = await openai.chat.completions.create({
             messages: [...chatHistory, { role: "user", content: userInput }],
-            model: "gpt-4o",
+            model: "gpt-4",
           });
           success = true;
         } catch (error) {
@@ -77,9 +78,10 @@ export default function Home() {
   };
 
   return (
-    <>
-      <div className="bg-gradient-to-bl from-pink-500 to-sky-500 min-h-screen flex flex-col justify-center items-center">
-        <div className="w-full max-w-screen-md bg-white p-4 rounded-xl shadow-md border-4 border-slate-300">
+    <div className="flex min-h-screen">
+      <ChatHistorySidebar chatHistory={chatHistory} />
+      <div className="flex-1 flex flex-col justify-center items-center bg-gradient-to-bl from-pink-500 to-sky-500">
+        <div className="w-full max-w-screen-md bg-white p-4 rounded-xl shadow-md border-4 animate-border-animate">
           <div className="mb-4">
             <div className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-sky-500 mb-2">
               Nexus Bot
@@ -100,8 +102,8 @@ export default function Home() {
                 <div
                   className={`rounded-lg p-2 max-w-md mx-4 inline-block ${
                     message.role === "user"
-                      ? "bg-blue-300 text-blue-800 font-semibold float-right"
-                      : "bg-green-300 text-green-800 font-semibold"
+                      ? "bg-violet-300 text-violet-800 font-semibold float-right"
+                      : "bg-sky-300 text-sky-800 font-semibold"
                   }`}
                 >
                   {message.role === "user" ? "You" : "Nexus"}
@@ -109,8 +111,8 @@ export default function Home() {
                 <div
                   className={`max-w-md mx-4 my-2 inline-block ${
                     message.role === "user"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-green-100 text-green-800"
+                      ? "bg-violet-100 text-violet-800"
+                      : "bg-sky-100 text-sky-800"
                   } p-2 rounded-md whitespace-pre-wrap`}
                 >
                   {message.content}
@@ -128,13 +130,13 @@ export default function Home() {
               className="flex-1 p-2 rounded-l-lg border"
             />
             {isLoading ? (
-              <div className="bg-green-500 text-white p-2 rounded-r-lg animate-pulse">
+              <div className="bg-violet-500 text-white p-2 rounded-r-lg animate-pulse">
                 Loading...
               </div>
             ) : (
               <button
                 onClick={handleUserInput}
-                className="bg-blue-500 text-white p-2 rounded-r-lg hover:bg-blue-600"
+                className="bg-violet-500 text-violet-100 p-2 rounded-r-lg hover:bg-violet-600"
               >
                 Ask
               </button>
@@ -142,6 +144,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

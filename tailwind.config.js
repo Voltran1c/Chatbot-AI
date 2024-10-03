@@ -7,9 +7,17 @@ module.exports = {
   ],
   theme: {
     extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+      keyframes: {
+        borderAnimation: {
+          "0%": { borderColor: "#fca5a5" },
+          "25%": { borderColor: "#fbbf24" },
+          "50%": { borderColor: "#34d399" },
+          "75%": { borderColor: "#60a5fa" },
+          "100%": { borderColor: "#fca5a5" },
+        },
+      },
+      animation: {
+        "border-animate": "borderAnimation 5s linear infinite",
       },
     },
   },
