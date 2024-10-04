@@ -1,7 +1,7 @@
 "use client";
 
 import OpenAI from "openai";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ChatHistorySidebar from "./components/ChatHistorySidebar.jsx";
 
 const openai = new OpenAI({
@@ -15,16 +15,26 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatHistory]);
+
   const handleUserInput = async () => {
     if (!userInput.trim()) return;
     setIsLoading(true);
     setError(null);
 
     try {
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        { role: "user", content: userInput },
-      ]);
+      const userMessage = {
+        role: "user",
+        content: userInput,
+        timestamp: Date.now(),
+      };
+      setChatHistory((prevChat) => [...prevChat, userMessage]);
 
       let retryCount = 0;
       let success = false;
@@ -33,7 +43,7 @@ export default function Home() {
       while (!success && retryCount < 3) {
         try {
           chatCompletion = await openai.chat.completions.create({
-            messages: [...chatHistory, { role: "user", content: userInput }],
+            messages: [...chatHistory, userMessage],
             model: "gpt-4",
           });
           success = true;
@@ -51,13 +61,12 @@ export default function Home() {
         throw new Error("Request exceeded the quota. Please try again later.");
       }
 
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        {
-          role: "assistant",
-          content: chatCompletion.choices[0].message.content,
-        },
-      ]);
+      const assistantMessage = {
+        role: "assistant",
+        content: chatCompletion.choices[0].message.content,
+        timestamp: Date.now(),
+      };
+      setChatHistory((prevChat) => [...prevChat, assistantMessage]);
 
       setUserInput("");
     } catch (error) {
@@ -78,7 +87,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col sm:flex-row min-h-screen">
       <ChatHistorySidebar chatHistory={chatHistory} />
       <div className="flex-1 flex flex-col justify-center items-center bg-gradient-to-bl from-pink-500 to-sky-500">
         <div className="w-full max-w-screen-md bg-white p-4 rounded-xl shadow-md border-4 animate-border-animate">
@@ -119,6 +128,7 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            <div ref={chatEndRef} />
           </div>
           <div className="flex">
             <input
